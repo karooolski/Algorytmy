@@ -1,4 +1,5 @@
-﻿#include <vector>
+#include<iostream>
+#include <vector>
 #include <list>
 using namespace std;
 //Program znajdujący drogę w grafie na płaszczyźnie, korzystający z algorytmu A*.
@@ -11,6 +12,11 @@ struct wezel {
 	int px;		// współrzędna x położenia węzła poprzedzającego bieżący na najkrótszej drodze
 	int py;		// współrzędna y położenia węzła poprzedzającego bieżący na najkrótszej drodze
 	bool p;		// czy węzeł został już sprawdzony?
+};
+
+struct Droga {
+	int x;
+	int y;
 };
 
 // Przeciążony operator porównania, używany podczas sortowania list
@@ -31,11 +37,11 @@ bool czy_jest(list<wezel>* Q, int x, int y) {
 }
 
 // Szukamy węzeła o podanych współrzędnych na wskazanej liście i zwracamy do niego iterator
-bool znajdz(list<wezel>* Q, int x, int y, list<wezel>::iterator* w) {
-	for (auto it = Q->begin(); it != Q->end(); it++) {
+bool znajdz(list<wezel>* do_przetworzenia, int x, int y, list<wezel>::iterator* wezel) {
+	for (auto it = do_przetworzenia->begin(); it != do_przetworzenia->end(); it++) {
 		if (it->x == x)
 			if (it->y == y) {
-				*w = it;
+				*wezel = it;
 				return true;
 			}
 	}
@@ -59,22 +65,27 @@ float h(int x, int y, int kx, int ky) {
 }
 
 // Funkcja która ma dodać węzeł o podanych współrze∂nych do listy węzłów oczekujących na sprawdzenie
-bool dodaj_wezel(vector<vector<int>>* graf, int x, int y, int kx, int ky, int bx, int by, list<wezel>* Q, list<wezel>* D) {
+// kx - x dolecelowe 
+// ky - y docelowe
+bool dodaj_wezel(vector<vector<int>>* graf, int x, int y, int kx, int ky, int bx, int by, list<wezel>* do_przetworzenia, list<wezel>* przetworzone) {
 	wezel w;
 	list<wezel>::iterator it;
 	float d = 0;
-	if (czy_jest(D, x, y))
+	if (czy_jest(przetworzone, x, y))
 		return false;	// nie interesują nas węzły będące na liśczie przetworzonych
-	if (!Q->empty())
-		d = Q->front().d;	// pobieramy drogę przebytą do węzła z którego tu trafiliśmy
+	if (!do_przetworzenia->empty())
+		d = do_przetworzenia->front().d;	// pobieramy drogę przebytą do węzła z którego tu trafiliśmy
 	if (czy_mozna(graf, x, y)) {
 		d = d + h(x, y, bx, by);	// obliczamy drogę do węzła który dodajemy przez węzeł z którego tu trafiliśmy
-		if (znajdz(Q, x, y, &it)) {	// sprawdzamy, czy dodawany węzeł nie jest aby już na liście do sprawdzenia
+		if (znajdz(do_przetworzenia, x, y, &it)) {	// sprawdzamy, czy dodawany węzeł nie jest aby już na liście do sprawdzenia
 			if (d < it->d) {	// relaksacja - sprawdzamy, czy aby nie znaleźliśmy lepszej (krótszej) drogi
 				it->d = d;		// tak, znaleźliśmy,
 				it->deha = d + it->h;	// więc wszystko przeliczamy
 				it->px = bx;	// i zazanaczemy, że prowadzi ona przez
 				it->py = by;	// inny węzeł, niż ta poprzednia droga
+
+				// dla wyswietlania drogi
+				graf->at(x).at(y) = 9;
 			}
 		}
 		else {	// ale jeśli tego węzła nie ma jeszcze na liście do sprawdzenia, to trzeba go dodać
@@ -86,35 +97,53 @@ bool dodaj_wezel(vector<vector<int>>* graf, int x, int y, int kx, int ky, int bx
 			w.px = bx;
 			w.py = by;
 			w.p = false;
-			Q->push_back(w);
+			do_przetworzenia->push_back(w);
 		}
 		return true;
 	}
 	return false;
 }
 
-bool A_star(vector<vector<int>>* graf, int sx, int sy, int kx, int ky, list<wezel>* Q, list<wezel>* D) {
-	if (Q->empty())	// czy mamy z czym pracować?
+// sx sy - startowe wspolrzedne
+// kx ky - wspolrzedne dolecowe
+bool A_star(vector<vector<int>>* graf, int sx, int sy, int kx, int ky, list<wezel>* do_przetworzenia, list<wezel>* przetworzone) {
+	if (do_przetworzenia->empty())	// czy mamy z czym pracować?
 		return false;	// Nieee... Tu nic nie ma... :(
+	list<Droga> przebyta_droga;
 	// będzemy tak długo szukać, aż dojdziemy do węzła końcowego LUB lista Q będzie pusta
-	while (!((Q->front().x == kx && Q->front().y == ky) || Q->empty())) {
-		dodaj_wezel(graf, Q->front().x - 1, Q->front().y - 1, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x - 1, Q->front().y, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x - 1, Q->front().y + 1, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x, Q->front().y - 1, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x, Q->front().y + 1, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x + 1, Q->front().y - 1, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x + 1, Q->front().y, kx, ky, Q->front().x, Q->front().y, Q, D);
-		dodaj_wezel(graf, Q->front().x + 1, Q->front().y + 1, kx, ky, Q->front().x, Q->front().y, Q, D);
+	while (!((do_przetworzenia->front().x == kx && do_przetworzenia->front().y == ky) || do_przetworzenia->empty())) {
+		dodaj_wezel(graf, do_przetworzenia->front().x - 1, do_przetworzenia->front().y - 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x - 1, do_przetworzenia->front().y, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x - 1, do_przetworzenia->front().y + 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x, do_przetworzenia->front().y - 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x, do_przetworzenia->front().y + 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x + 1, do_przetworzenia->front().y - 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x + 1, do_przetworzenia->front().y, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
+		dodaj_wezel(graf, do_przetworzenia->front().x + 1, do_przetworzenia->front().y + 1, kx, ky, do_przetworzenia->front().x, do_przetworzenia->front().y, do_przetworzenia, przetworzone);
 
-		Q->front().p = true;
-		D->push_back(Q->front());
-		Q->pop_front();
-		Q->sort();
+		do_przetworzenia->front().p = true;
+		przetworzone->push_back(do_przetworzenia->front());
+		do_przetworzenia->pop_front();
+		do_przetworzenia->sort();
+
+		// tym zobaczysz wszystkie przetworzone 
+		//graf->at(do_przetworzenia->front().x).at(do_przetworzenia->front().y) = 3;
 	}
-	if (Q->empty())	// lista Q jest pusta, więc nie znaleźliśmy drogi...
+	if (do_przetworzenia->empty())	// lista Q jest pusta, więc nie znaleźliśmy drogi...
 		return false;
-	D->push_back(Q->front());	// droga została znaleziona, więc dodajmy węzeł końcowy do listy sprzwdzonych
+	przetworzone->push_back(do_przetworzenia->front());	// droga została znaleziona, więc dodajmy węzeł końcowy do listy sprzwdzonych
+
+	list<wezel>::iterator it_tmp;
+
+	for (it_tmp = przetworzone->begin(); it_tmp != przetworzone->end(); it_tmp++) {
+
+	}
+	it_tmp--; // znaleziona droga ostatni wezel 
+	przebyta_droga.push_back({ it_tmp->x, it_tmp->y });
+
+	for (list<Droga>::iterator it = przebyta_droga.begin(); it != przebyta_droga.end(); it++) {
+		cout << "(" << it->x << "," << it->y << ")" << endl;
+	}
 	return true;
 }
 
@@ -146,6 +175,18 @@ bool A_star(vector<vector<int>>* graf, int sx, int sy, int kx, int ky, list<weze
 	return true;
 }
 */
+
+void wyswietl(vector<vector<int>>graf) {
+	for (int i = 0; i < graf.size(); i++)
+	{
+		for (int j = 0; j < graf[i].size(); j++)
+		{
+			if (j == 0) cout << endl;
+			cout << graf[i][j];
+		}
+	}
+}
+
 int main()
 {
 	// A zdfiniujmy sobie taki graf:
@@ -166,11 +207,13 @@ int main()
 	{ 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1 },
 	{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 }
 	};
-
+	wyswietl(graf);
 	list<wezel> Q;	// lista węzłów do sprawdzenia
 	list<wezel> D;	// lista sprawdzonych węzłów
 	dodaj_wezel(&graf, 14, 0, 0, 14, 14, 0, &Q, &D);	// dodajmy węzełstartowy
 	A_star(&graf, 14, 0, 0, 14, &Q, &D);				// i poszukajmy drogi w grafie
+	cout << "po Astar" << endl;
+	wyswietl(graf);
 
 	// Po wyjściu z funkcji, lista D zawiera wszystkie zbadane węzły.
 	// Na jej końcu jest węzeł końcowy, który zawiera namiary na swojego poprzednika
