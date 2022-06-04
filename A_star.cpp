@@ -8,11 +8,11 @@ struct Node {
 	int x;		// współrzędna x położenia węzła na płaszczyźnie
 	int y;		// współrzędna y położenia węzła na płaszczyźnie
 	float distanceFromFirstNode;	// odległość przebyta od węzła startowego do tego węzła
-	float h;	// heurystyka - ile zostało w linii prostej do węzła końcowego
+	float distanceToLastNode;	// heurystyka - ile zostało w linii prostej do węzła końcowego
 	float sum_D_H;	// suma d i h, używana do wybierania węzłów do sprawdzenia
 	int earlier_x;		// współrzędna x położenia węzła poprzedzającego bieżący na najkrótszej drodze
 	int earlier_y;		// współrzędna y położenia węzła poprzedzającego bieżący na najkrótszej drodze
-	bool nodeProcessed;		// czy węzeł został już sprawdzony?
+	bool isNodeProcessed;		// czy węzeł został już sprawdzony?
 };
 
 struct Road {
@@ -22,7 +22,7 @@ struct Road {
 
 // Przeciążony operator porównania, używany podczas sortowania list
 bool operator < (Node a, Node b) {
-	if (!a.nodeProcessed && (a.sum_D_H < b.sum_D_H))
+	if (!a.isNodeProcessed && (a.sum_D_H < b.sum_D_H))
 		return true;
 	return false;
 }
@@ -53,11 +53,11 @@ bool isNodeInList(list<Node>* Q, int x, int y) {
 }
 
 // Szukamy węzeła o podanych współrzędnych na wskazanej liście i zwracamy do niego iterator
-bool findNode(list<Node>* toBeProcessed, int x, int y, list<Node>::iterator* wezel) {
+bool findNode(list<Node>* toBeProcessed, int x, int y, list<Node>::iterator* node) {
 	for (auto it = toBeProcessed->begin(); it != toBeProcessed->end(); it++) {
 		if (it->x == x)
 			if (it->y == y) {
-				*wezel = it;
+				*node = it;
 				return true;
 			}
 	}
@@ -83,20 +83,20 @@ float distanceBitweenNodes(int x, int y, int other_x, int other_y) {
 
 // Funkcja która ma dodać węzeł o podanych współrze∂nych do listy węzłów oczekujących na sprawdzenie
 // kx - x dolecelowe -> last_x   // ky - y docelowe   -> last_y   // bx,by -> earlier_x, earlier_y
-bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, int earlier_x, int earlier_y, list<Node>* toBeProcessed, list<Node>* przetworzone) {
+bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, int earlier_x, int earlier_y, list<Node>* toBeProcessed, list<Node>* processed) {
 	Node node;
 	list<Node>::iterator it;
-	float d = 0;
-	if (isNodeInList(przetworzone, x, y))
+	float distance = 0;
+	if (isNodeInList(processed, x, y))
 		return false;	// nie interesują nas węzły będące na liśczie przetworzonych
 	if (!toBeProcessed->empty())
-		d = toBeProcessed->front().distanceFromFirstNode;	// pobieramy drogę przebytą do węzła z którego tu trafiliśmy
+		distance = toBeProcessed->front().distanceFromFirstNode;	// pobieramy drogę przebytą do węzła z którego tu trafiliśmy
 	if (is_xy_reachable(graph, x, y)) {
-		d = d + distanceBitweenNodes(x, y, earlier_x, earlier_y);	// obliczamy drogę do węzła który dodajemy przez węzeł z którego tu trafiliśmy
+		distance = distance + distanceBitweenNodes(x, y, earlier_x, earlier_y);	// obliczamy drogę do węzła który dodajemy przez węzeł z którego tu trafiliśmy
 		if (findNode(toBeProcessed, x, y, &it)) {	// sprawdzamy, czy dodawany węzeł nie jest aby już na liście do sprawdzenia
-			if (d < it->distanceFromFirstNode) {	// relaksacja - sprawdzamy, czy aby nie znaleźliśmy lepszej (krótszej) drogi
-				it->distanceFromFirstNode = d;		// tak, znaleźliśmy,
-				it->sum_D_H = d + it->h;	// więc wszystko przeliczamy
+			if (distance < it->distanceFromFirstNode) {	// relaksacja - sprawdzamy, czy aby nie znaleźliśmy lepszej (krótszej) drogi
+				it->distanceFromFirstNode = distance;		// tak, znaleźliśmy,
+				it->sum_D_H = distance + it->distanceToLastNode;	// więc wszystko przeliczamy
 				it->earlier_x = earlier_x;	// i zazanaczemy, że prowadzi ona przez
 				it->earlier_y = earlier_y;	// inny węzeł, niż ta poprzednia droga
 				//graf->at(x).at(y) = 9; // dla wyswietlania drogi
@@ -105,12 +105,12 @@ bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, i
 		else {	// ale jeśli tego węzła nie ma jeszcze na liście do sprawdzenia, to trzeba go dodać
 			node.x = x;
 			node.y = y;
-			node.distanceFromFirstNode = d;
-			node.h = distanceBitweenNodes(x, y, last_x, last_y);
-			node.sum_D_H = node.distanceFromFirstNode + node.h;
+			node.distanceFromFirstNode = distance;
+			node.distanceToLastNode = distanceBitweenNodes(x, y, last_x, last_y);
+			node.sum_D_H = node.distanceFromFirstNode + node.distanceToLastNode;
 			node.earlier_x = earlier_x;
 			node.earlier_y = earlier_y;
-			node.nodeProcessed = false;
+			node.isNodeProcessed = false;
 			toBeProcessed->push_back(node);
 		}
 		return true;
@@ -118,32 +118,10 @@ bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, i
 	return false;
 }
 
-// sx sy - startowe wspolrzedne - start_x, start_y // kx ky - wspolrzedne dolecowe
-bool A_star(vector<vector<int>>* graph, int start_x, int start_y, int last_x, int last_y, list<Node>* toBeProcessed, list<Node>* processed) {
-	if (toBeProcessed->empty())	// czy mamy z czym pracować?
-		return false;	// Nieee... Tu nic nie ma... :(
+// find road after a_star ended working
+void findRoad(vector<vector<int>>* graph, list<Node>* processed, int start_x, int start_y, int last_x, int last_y) {
 	list<Road> passedRoad;
-	// będzemy tak długo szukać, aż dojdziemy do węzła końcowego LUB lista Q będzie pusta
-	while (!((toBeProcessed->front().x == last_x && toBeProcessed->front().y == last_y) || toBeProcessed->empty())) {
-		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y,		last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x,	toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x,	toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y,		last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
-		toBeProcessed->front().nodeProcessed = true;
-		processed->push_back(toBeProcessed->front());
-		toBeProcessed->pop_front();
-		toBeProcessed->sort();
-		//graf->at(toBeProcessed->front().x).at(toBeProcessed->front().y) = 3; // tym zobaczysz wszystkie przetworzone 
-	}
-	if (toBeProcessed->empty())	// lista Q jest pusta, więc nie znaleźliśmy drogi...
-		return false;
-	processed->push_back(toBeProcessed->front());	// droga została znaleziona, więc dodajmy węzeł końcowy do listy sprzwdzonych
-
-	// finding last node coordinates
+	// finding last node coordinates, last node is located on last position in processed-nodes list
 	list<Node>::iterator toLastNode;
 	for (toLastNode = processed->begin(); toLastNode != processed->end(); ) {
 		toLastNode++;
@@ -178,6 +156,35 @@ bool A_star(vector<vector<int>>* graph, int start_x, int start_y, int last_x, in
 		cout << "(" << it->x << "," << it->y << ")" << endl;
 	}
 	cout << "koniec\n";
+}
+
+// sx sy - startowe wspolrzedne - start_x, start_y // kx ky - wspolrzedne dolecowe
+bool A_star(vector<vector<int>>* graph, int start_x, int start_y, int last_x, int last_y, list<Node>* toBeProcessed, list<Node>* processed) {
+	if (toBeProcessed->empty())	// czy mamy z czym pracować?
+		return false;	// Nieee... Tu nic nie ma... :(
+	
+	// będzemy tak długo szukać, aż dojdziemy do węzła końcowego LUB lista Q będzie pusta
+	while (!((toBeProcessed->front().x == last_x && toBeProcessed->front().y == last_y) || toBeProcessed->empty())) {
+		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y,		last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x - 1,toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x,	toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x,	toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y - 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y,		last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		addNode(graph, toBeProcessed->front().x + 1,toBeProcessed->front().y + 1,	last_x, last_y, toBeProcessed->front().x, toBeProcessed->front().y, toBeProcessed, processed);
+		toBeProcessed->front().isNodeProcessed = true;
+		processed->push_back(toBeProcessed->front());
+		toBeProcessed->pop_front();
+		toBeProcessed->sort();
+		//graf->at(toBeProcessed->front().x).at(toBeProcessed->front().y) = 3; // tym zobaczysz wszystkie przetworzone 
+	}
+	if (toBeProcessed->empty())	// lista Q jest pusta, więc nie znaleźliśmy drogi...
+		return false;
+	processed->push_back(toBeProcessed->front());	// droga została znaleziona, więc dodajmy węzeł końcowy do listy sprzwdzonych
+
+	findRoad(graph,processed,start_x,start_y,last_x,last_y);
+
 	return true;
 }
 
@@ -210,18 +217,18 @@ bool A_star(vector<vector<int>>* graph, int start_x, int start_y, int last_x, in
 }
 */
 
-void showGraph(vector<vector<int>>graf) {
-	for (int i = 0; i < graf.size(); i++)
+void showGraph(vector<vector<int>>graph) {
+	for (int i = 0; i < graph.size(); i++)
 	{
-		for (int j = 0; j < graf[i].size(); j++)
+		for (int j = 0; j < graph[i].size(); j++)
 		{
 			if (j == 0) cout << endl;
-			if (graf[i][j] == 3) {
+			if (graph[i][j] == 3) {
 				green_collor();
-				cout << graf[i][j]<<" ";
+				cout << graph[i][j]<<" ";
 				white_collor();
 			}
-			else cout << graf[i][j]<<" ";
+			else cout << graph[i][j]<<" ";
 		}
 	}
 }
@@ -229,7 +236,7 @@ void showGraph(vector<vector<int>>graf) {
 int main()
 {
 	// A zdfiniujmy sobie taki graf:
-	vector<vector<int>> graf = {
+	vector<vector<int>> graph = {
 	{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ,
 	{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
 	{ 1,1,1,1,1,1,1,1,1,0,1,1,1,1,1 },
@@ -246,13 +253,13 @@ int main()
 	{ 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1 },
 	{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 }
 	};
-	showGraph(graf);
+	showGraph(graph);
 	list<Node> Q;	// lista węzłów do sprawdzenia
 	list<Node> D;	// lista sprawdzonych węzłów
-	addNode(&graf, 14, 0, 0, 14, 14, 0, &Q, &D);	// dodajmy węzełstartowy
-	A_star(&graf, 14, 0, 0, 14, &Q, &D);				// i poszukajmy drogi w grafie
-	cout << "po Astar" << endl;
-	showGraph(graf);
+	addNode(&graph, 14, 0, 0, 14, 14, 0, &Q, &D);	// dodajmy węzełstartowy
+	A_star(&graph, 14, 0, 0, 14, &Q, &D);				// i poszukajmy drogi w grafie
+	cout << "\nPo A_star:\n";
+	showGraph(graph);
 
 	// Po wyjściu z funkcji, lista D zawiera wszystkie zbadane węzły.
 	// Na jej końcu jest węzeł końcowy, który zawiera namiary na swojego poprzednika
@@ -267,3 +274,4 @@ int main()
 
 	return 0;
 }
+
