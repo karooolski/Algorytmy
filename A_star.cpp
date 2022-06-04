@@ -1,7 +1,7 @@
 #include<iostream>
 #include <vector>
 #include <list>
-#include<windows.h> /*set color*/ 
+#include<windows.h> /*setColor*/ 
 using namespace std;
 //Program znajdujący drogę w grafie na płaszczyźnie, korzystający z algorytmu A*.
 struct Node {
@@ -9,7 +9,7 @@ struct Node {
 	int y;		// współrzędna y położenia węzła na płaszczyźnie
 	float distanceFromFirstNode;	// odległość przebyta od węzła startowego do tego węzła
 	float distanceToLastNode;	// heurystyka - ile zostało w linii prostej do węzła końcowego
-	float sum_D_H;	// suma d i h, używana do wybierania węzłów do sprawdzenia
+	float sum_distances;	// suma d i h, używana do wybierania węzłów do sprawdzenia
 	int earlier_x;		// współrzędna x położenia węzła poprzedzającego bieżący na najkrótszej drodze
 	int earlier_y;		// współrzędna y położenia węzła poprzedzającego bieżący na najkrótszej drodze
 	bool isNodeProcessed;		// czy węzeł został już sprawdzony?
@@ -21,8 +21,8 @@ struct Road {
 };
 
 // Przeciążony operator porównania, używany podczas sortowania list
-bool operator < (Node a, Node b) {
-	if (!a.isNodeProcessed && (a.sum_D_H < b.sum_D_H))
+bool operator < (Node node_a, Node node_b) {
+	if (!node_a.isNodeProcessed && (node_a.sum_distances < node_b.sum_distances))
 		return true;
 	return false;
 }
@@ -96,7 +96,7 @@ bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, i
 		if (findNode(toBeProcessed, x, y, &it)) {	// sprawdzamy, czy dodawany węzeł nie jest aby już na liście do sprawdzenia
 			if (distance < it->distanceFromFirstNode) {	// relaksacja - sprawdzamy, czy aby nie znaleźliśmy lepszej (krótszej) drogi
 				it->distanceFromFirstNode = distance;		// tak, znaleźliśmy,
-				it->sum_D_H = distance + it->distanceToLastNode;	// więc wszystko przeliczamy
+				it->sum_distances = distance + it->distanceToLastNode;	// więc wszystko przeliczamy
 				it->earlier_x = earlier_x;	// i zazanaczemy, że prowadzi ona przez
 				it->earlier_y = earlier_y;	// inny węzeł, niż ta poprzednia droga
 				//graf->at(x).at(y) = 9; // dla wyswietlania drogi
@@ -107,7 +107,7 @@ bool addNode(vector<vector<int>>* graph, int x, int y, int last_x, int last_y, i
 			node.y = y;
 			node.distanceFromFirstNode = distance;
 			node.distanceToLastNode = distanceBitweenNodes(x, y, last_x, last_y);
-			node.sum_D_H = node.distanceFromFirstNode + node.distanceToLastNode;
+			node.sum_distances = node.distanceFromFirstNode + node.distanceToLastNode;
 			node.earlier_x = earlier_x;
 			node.earlier_y = earlier_y;
 			node.isNodeProcessed = false;
@@ -132,7 +132,7 @@ void findRoad(vector<vector<int>>* graph, list<Node>* processed, int start_x, in
 	int temp_y = last_y;
 	list<Node>::iterator toFirstNode = toLastNode;
 	// find road using earlier_x and earlier_y from each Node ago, starting from last Node
-	while (temp_x != start_x && temp_y != start_y) {
+	while (temp_x != start_x && temp_y != start_y) {  /*while temp(0,14) != (14,0) in this case*/
 		int earlier_x = toFirstNode->earlier_x;
 		int earlier_y = toFirstNode->earlier_y;
 		temp_x = earlier_x;
