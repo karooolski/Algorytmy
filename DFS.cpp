@@ -153,11 +153,13 @@ bool yIsDiscovered(vector<int>* discovered,int y) {
 	return false;
 }
 
-int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end) {
+int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,int last_x,int last_y, int przesuniecie) {
 	system("CLS");
 	showGraph(graph[0]);
 	if (y >= graph->size())
 		return 0;
+	if (x != 0 && y != 0 && x == last_x && y == last_y )
+		przesuniecie++;
 	//if (isLeav(graph, y))
 	//	return DFSy(graph, discovered, 0, y-1, y_end);
 	int actual = graph->at(y).at(x);
@@ -167,19 +169,35 @@ int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end)
 	for (int i = x; i < graph->size(); i++) {
 		actual = graph->at(y).at(i);
 		if (graph->at(y).at(i) == 1) {
-			if (!yIsDiscovered(discovered, y)) {
+			//if (!yIsDiscovered(discovered, y)) {
 				discovered->push_back(y);
 				graph->at(y).at(i) = 2;
+				last_x = x; last_y = y;
 				system("CLS");
 				showGraph(graph[0]);
 				cout << "\n";
-				return DFSy(graph, discovered, x + 1, y + 1, y_end);
-			}
+				return DFSy(graph, discovered, x + 1, y + przesuniecie, y_end,last_x,last_y,przesuniecie);
+			//}
 		}
 	}
 	if (y == y_end)
 		return 0;
-	else if ((y  < graph->size())) return DFSy(graph, discovered, 0, y , y_end);
+	else if ((y < graph->size())) {
+		if (isLeav(graph, y)) {
+			//graph->at(y-1).at(x) = 3;
+			int temp_x=0;
+			int temp_y=y;
+			int temp_wynik = graph->at(temp_y).at(temp_x);
+			while ( temp_wynik != 1) { // znajdz x w lisciu i go oznacz po czym wroc tam gdzie byles
+				temp_wynik = graph->at(temp_y).at(temp_x);
+				temp_x++;
+			}
+			graph->at(temp_y).at(temp_x)=2;
+			discovered->push_back(y);
+			return DFSy(graph, discovered, last_x+1,last_y, y_end, last_x, last_y, przesuniecie++);
+		}
+			
+	}
 }
 
 int DFSgo(vector<vector<int>> *graf, int start, int koniec, vector<int>* odwiedzone, int wezel, int poprzedni) {
@@ -250,7 +268,7 @@ int main()
 	//DFSr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSrr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSx(&graph, &seenNodesIDs, 0,0,y_end,0);
-	DFSy(&graph, &seenNodesIDs, 0, 0, y_end);
+	DFSy(&graph, &seenNodesIDs, 0, 0, y_end,0,0,1);
 	//DFSgo(&graph, 0, 12, &seenNodesIDs, 0, 0);
 	white_collor();
 	cout << "\n";
