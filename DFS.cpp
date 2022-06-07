@@ -33,10 +33,16 @@ void white_collor() {
 
 void showGraph(vector<vector<int>>graph) {
 	char A_M[] = {'A','B','C','D','E','F','G','H','I','J','K','L','M'};
+	for (int i = 0; i < graph.size(); i++)
+		cout << i << " ";
+	cout << "(x)";
+	cout << "\n";
+	
 	for (int i = 0; i < graph.size(); i++) 
 		cout << A_M[i]<<" ";
 	for (int i = 0; i < graph.size(); i++)
 	{
+		cout << "("<< i << ") ";
 		for (int j = 0; j < graph[i].size(); j++)
 		{
 			if (j == 0) cout << endl;
@@ -88,29 +94,50 @@ int DFS(graph_connections*gc, int y_start, int y_end, vector<int>* discovered, i
 
 bool isLeav(graph_connections *graph,int y) {
 	int count = 0;
+	int actual = graph->at(y).at(0);
 	for (int i = 0; i < graph->at(y).size(); i++) {
-		if (graph->at(y).at(i) == 1)
+		if (graph->at(y).at(i) == 1) {
+			actual = graph->at(y).at(i);
 			count++;
+		}
+			
 	}
 	if (count == 1)
 		return true;
 	return false;
 }
 
-int DFSx(graph_connections *graph,vector<int> *discovered, int y,int x, int y_end){
+bool forward_zeros(graph_connections* graph, int y, int x) {
+	for (int i = x; i < graph->size(); i++) {
+		if (graph->at(y).at(i) == 1 )
+		return false;
+	}
+	return true;
+}
+
+int DFSx(graph_connections *graph,vector<int> *discovered, int y,int x, int y_end, int przesuniecie){
+	if (forward_zeros(graph, y, x))
+		if(graph->at(y).at(x) != 1)
+			if (!(x - 1 < 0))
+				return DFSx(graph, discovered, y, x - 1, y_end, 1);
 	if (graph->at(y).at(x) == 0)
-		if (x + 1 < graph->at(y).size())
-			return DFSx(graph, discovered, y, x + 1, y_end);
+		if (x + 1 < graph->at(y).size()) {
+			przesuniecie++;
+			return DFSx(graph, discovered, y, x + 1, y_end,przesuniecie);
+		}
 	if (graph->at(y).at(x) == 1)
-		if (y + 1 < graph->size()) {
+		if (y + przesuniecie < graph->size()) {
+			int tmp = przesuniecie;
+			przesuniecie = 1;
 			discovered->push_back(y);
 			graph->at(y).at(x) = 2;
-			return DFSx(graph, discovered, y + 1, x+1, y_end);
+			return DFSx(graph, discovered, y + tmp, x+1, y_end,przesuniecie);
 		}
+	
 	if (isLeav(graph, y))
 		if (y - 1 < graph->size())
 			if (x + 1 < graph->at(y).size())
-				return DFSx(graph, discovered, y - 1, x + 1, y_end);
+				return DFSx(graph, discovered, y - 1, x + 1, y_end,przesuniecie);
 	if (y == y_end) {
 		cout << y; 
 		return 0;
@@ -118,6 +145,56 @@ int DFSx(graph_connections *graph,vector<int> *discovered, int y,int x, int y_en
 		
 }
 
+bool yIsDiscovered(vector<int>* discovered,int y) {
+	for (int i = 0; i < discovered->size(); i++) {
+		if (discovered->at(i) == y)
+			return true;
+	}
+	return false;
+}
+
+int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end) {
+	system("CLS");
+	showGraph(graph[0]);
+	if (y >= graph->size())
+		return 0;
+	//if (isLeav(graph, y))
+	//	return DFSy(graph, discovered, 0, y-1, y_end);
+	int actual = graph->at(y).at(x);
+	if (x == graph->size() && y != graph->size()) {
+		x = 0;
+	}
+	for (int i = x; i < graph->size(); i++) {
+		actual = graph->at(y).at(i);
+		if (graph->at(y).at(i) == 1) {
+			if (!yIsDiscovered(discovered, y)) {
+				discovered->push_back(y);
+				graph->at(y).at(i) = 2;
+				system("CLS");
+				showGraph(graph[0]);
+				cout << "\n";
+				return DFSy(graph, discovered, x + 1, y + 1, y_end);
+			}
+		}
+	}
+	if (y == y_end)
+		return 0;
+	else if ((y  < graph->size())) return DFSy(graph, discovered, 0, y , y_end);
+}
+
+int DFSgo(vector<vector<int>> *graf, int start, int koniec, vector<int>* odwiedzone, int wezel, int poprzedni) {
+	for (int i = 0; i < graf[wezel].size(); i++) {
+		if (i != start && i != poprzedni && graf->at(wezel).at(i)) {
+			odwiedzone->push_back(i);
+			//graf->at(x).at(i) = 2;
+			if (i == koniec)
+				return 1;
+			else
+				return DFS(graf, start, koniec, odwiedzone, i, wezel);
+		}
+	}
+	return 0;
+}
 
 int main()
 {
@@ -144,39 +221,45 @@ int main()
 	*/
 
 	vector<vector<int>> graph; //graf_krawedzie
+
 	graph = {
-	   /*A,B,C,D,E,F,G,H,I,J,K,L,M*/
-		{0,1,0,1,0,1,0,0,0,0,0,0,0}, /*A*/
-		{1,0,1,0,0,0,0,0,0,0,0,0,0}, /*B*/
-		{0,1,0,1,0,0,0,0,0,0,0,0,0}, /*C*/
-		{1,0,1,0,1,1,0,0,0,0,0,0,0}, /*D*/
-		{0,0,0,1,0,0,1,0,0,0,0,0,0}, /*E*/
-		{1,0,0,1,0,0,1,1,1,1,0,0,0}, /*F*/
-		{0,0,0,0,1,1,0,0,0,0,0,0,0}, /*G*/
-		{0,0,0,0,0,1,0,0,0,0,0,0,0}, /*H*/
-		{0,0,0,0,0,1,0,0,0,0,0,0,0}, /*I*/
-		{0,0,0,0,0,1,0,0,0,0,1,0,0}, /*J*/
-		{0,0,0,0,0,0,0,0,0,1,0,1,0}, /*K*/
-		{0,0,0,0,0,0,0,0,0,0,1,0,1}, /*L*/
-		{1,0,0,0,0,0,0,0,0,0,0,1,0}  /*M*/
+		/*A,B,C,D,E,F,G,H,I,J,K,L,M*/
+		 {0,1,0,1,0,1,1,0,0,0,0,0,0}, /*A*/
+		 {1,0,1,0,0,0,0,0,0,0,0,0,0}, /*B*/
+		 {0,1,0,1,0,0,0,0,0,0,0,0,0}, /*C*/
+		 {1,0,1,0,1,1,1,0,0,0,0,0,0}, /*D*/
+		 {0,0,0,1,0,1,1,0,0,0,0,0,0}, /*E*/
+		 {0,0,0,1,1,0,1,0,0,0,0,0,0}, /*F*/
+		 {1,0,0,1,0,0,1,1,1,1,0,0,0}, /*G*/
+		 {0,0,0,0,0,1,0,0,0,0,0,0,0}, /*H*/
+		 {0,0,0,0,0,1,0,0,0,0,0,0,0}, /*I*/
+		 {0,0,0,0,0,1,0,0,0,0,1,0,0}, /*J*/
+		 {0,0,0,0,0,0,0,0,0,1,0,1,0}, /*K*/
+		 {0,0,0,0,0,0,0,0,0,0,1,0,1}, /*L*/
+		 {1,0,0,0,0,0,0,0,0,0,0,1,0}  /*M*/
 	};
 
 	// Znajdźmy drogę międzu wierzchołkami A i D
 	vector<int> seenNodesIDs;
 	int y_start = 0;
-	int y_end = 12;
+	int y_end = 4;
 	showGraph(graph);
 	cout << "\n \n";
 	//DFS(&graph_connections, y_start, y_end, &seenNodesIDs, y_start, y_start);
 	//DFSx(&graph_connections, ID_start, ID_end, &seenNodesIDs, ID_start, ID_start);
 	//DFSr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSrr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
-	DFSx(&graph, &seenNodesIDs, 0,0,y_end);
-	showGraph(graph);
+	//DFSx(&graph, &seenNodesIDs, 0,0,y_end,0);
+	DFSy(&graph, &seenNodesIDs, 0, 0, y_end);
+	//DFSgo(&graph, 0, 12, &seenNodesIDs, 0, 0);
+	white_collor();
+	cout << "\n";
+	//showGraph(graph);
 
 	cout << "Droga z wezla " << graph_nodes[y_start].nazwa << " do wezla " << graph_nodes[y_end].nazwa << " prowadzi przez:" << endl;
 	for (auto it = seenNodesIDs.begin(); it != seenNodesIDs.end(); it++)
 		cout << graph_nodes[*it].nazwa << " ";
+	cout << "\nA B C D E F G H G I G I G J K L M <-- popr\n";
 	cout << endl;
 
 	return 0;
