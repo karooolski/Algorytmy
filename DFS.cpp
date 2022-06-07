@@ -153,13 +153,13 @@ bool yIsDiscovered(vector<int>* discovered,int y) {
 	return false;
 }
 
-int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,int last_x,int last_y, int przesuniecie) {
+int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,int last_x,int last_y, int *przesuniecie) {
 	system("CLS");
 	showGraph(graph[0]);
 	if (y >= graph->size())
 		return 0;
 	if (x != 0 && y != 0 && x == last_x && y == last_y )
-		przesuniecie++;
+		*przesuniecie++;
 	//if (isLeav(graph, y))
 	//	return DFSy(graph, discovered, 0, y-1, y_end);
 	int actual = graph->at(y).at(x);
@@ -176,7 +176,9 @@ int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,
 				system("CLS");
 				showGraph(graph[0]);
 				cout << "\n";
-				return DFSy(graph, discovered, x + 1, y + przesuniecie, y_end,last_x,last_y,przesuniecie);
+				//if (!(isLeav(graph, y)));
+				//	*przesuniecie = 1;
+				return DFSy(graph, discovered, x + 1, y + *przesuniecie, y_end,last_x,last_y,przesuniecie);
 			//}
 		}
 	}
@@ -192,9 +194,14 @@ int DFSy(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,
 				temp_wynik = graph->at(temp_y).at(temp_x);
 				temp_x++;
 			}
+			temp_x--;
 			graph->at(temp_y).at(temp_x)=2;
 			discovered->push_back(y);
-			return DFSy(graph, discovered, last_x+1,last_y, y_end, last_x, last_y, przesuniecie++);
+			system("CLS");
+			showGraph(graph[0]);
+			//if (!(isLeav(graph, y)));
+			*przesuniecie = *przesuniecie +1 ;
+			return DFSy(graph, discovered, last_x+1,last_y, y_end, last_x, last_y, przesuniecie);
 		}
 			
 	}
@@ -268,7 +275,9 @@ int main()
 	//DFSr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSrr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSx(&graph, &seenNodesIDs, 0,0,y_end,0);
-	DFSy(&graph, &seenNodesIDs, 0, 0, y_end,0,0,1);
+	int prz = 1;
+	int* przesuniecie = &prz;
+	DFSy(&graph, &seenNodesIDs, 0, 0, y_end,0,0,przesuniecie);
 	//DFSgo(&graph, 0, 12, &seenNodesIDs, 0, 0);
 	white_collor();
 	cout << "\n";
