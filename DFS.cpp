@@ -86,6 +86,38 @@ int DFS(graph_connections*gc, int y_start, int y_end, vector<int>* discovered, i
 	return 0;
 }
 
+bool isLeav(graph_connections *graph,int y) {
+	int count = 0;
+	for (int i = 0; i < graph->at(y).size(); i++) {
+		if (graph->at(y).at(i) == 1)
+			count++;
+	}
+	if (count == 1)
+		return true;
+	return false;
+}
+
+int DFSx(graph_connections *graph,vector<int> *discovered, int y,int x, int y_end){
+	if (graph->at(y).at(x) == 0)
+		if (x + 1 < graph->at(y).size())
+			return DFSx(graph, discovered, y, x + 1, y_end);
+	if (graph->at(y).at(x) == 1)
+		if (y + 1 < graph->size()) {
+			discovered->push_back(y);
+			graph->at(y).at(x) = 2;
+			return DFSx(graph, discovered, y + 1, x+1, y_end);
+		}
+	if (isLeav(graph, y))
+		if (y - 1 < graph->size())
+			if (x + 1 < graph->at(y).size())
+				return DFSx(graph, discovered, y - 1, x + 1, y_end);
+	if (y == y_end) {
+		cout << y; 
+		return 0;
+	}
+		
+}
+
 
 int main()
 {
@@ -111,8 +143,8 @@ int main()
 
 	*/
 
-	vector<vector<int>> graph_connections; //graf_krawedzie
-	graph_connections = {
+	vector<vector<int>> graph; //graf_krawedzie
+	graph = {
 	   /*A,B,C,D,E,F,G,H,I,J,K,L,M*/
 		{0,1,0,1,0,1,0,0,0,0,0,0,0}, /*A*/
 		{1,0,1,0,0,0,0,0,0,0,0,0,0}, /*B*/
@@ -133,13 +165,14 @@ int main()
 	vector<int> seenNodesIDs;
 	int y_start = 0;
 	int y_end = 12;
-	showGraph(graph_connections);
+	showGraph(graph);
 	cout << "\n \n";
-	DFS(&graph_connections, y_start, y_end, &seenNodesIDs, y_start, y_start);
+	//DFS(&graph_connections, y_start, y_end, &seenNodesIDs, y_start, y_start);
 	//DFSx(&graph_connections, ID_start, ID_end, &seenNodesIDs, ID_start, ID_start);
 	//DFSr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
 	//DFSrr(&graph_connections, &seenNodesIDs, ID_start, ID_end, ID_start, ID_start);
-	showGraph(graph_connections);
+	DFSx(&graph, &seenNodesIDs, 0,0,y_end);
+	showGraph(graph);
 
 	cout << "Droga z wezla " << graph_nodes[y_start].nazwa << " do wezla " << graph_nodes[y_end].nazwa << " prowadzi przez:" << endl;
 	for (auto it = seenNodesIDs.begin(); it != seenNodesIDs.end(); it++)
