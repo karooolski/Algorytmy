@@ -20,8 +20,8 @@ void red_collor() {
 void white_collor() {
 	setColor(7);
 }
-
-void showGraph(vector<vector<int>>graph) {
+typedef vector<vector<int>> graph_connections;
+void showGraph(graph_connections graph) {
 	char A_M[] = {'A','B','C','D','E','F','G','H','I','J','K','L','M'};
 	for (int i = 0; i < graph.size(); i++)
 		cout << i << " ";
@@ -43,7 +43,7 @@ void showGraph(vector<vector<int>>graph) {
 }
 
 char A_M[] = { 'A','B','C','D','E','F','G','H','I','J','K','L','M' };
-typedef vector<vector<int>> graph_connections;
+
 bool isLeaf(graph_connections *graph,int y) {
 	int count = 0;
 	int actual = graph->at(y).at(0);
@@ -78,14 +78,13 @@ int DFS(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,i
 	}
 	if (isLeaf(graph, y)) { // logic when i am in a leaf 
 		int temp_x = 0;
-		int temp_y = y;
-		int temp_wynik = graph->at(temp_y).at(temp_x);
+		int temp_wynik = graph->at(y).at(temp_x);
 		while (temp_wynik != 1) { // find '1' in leaf and mark it, then return where you were
-			temp_wynik = graph->at(temp_y).at(temp_x);
+			temp_wynik = graph->at(y).at(temp_x);
 			temp_x++;
 		}
 		temp_x--;
-		graph->at(temp_y).at(temp_x) = 2;
+		graph->at(y).at(temp_x) = 2;
 		discovered->push_back(y);
 		system("CLS");
 		showGraph(graph[0]);
@@ -163,7 +162,6 @@ int main()
 	int y_end = 12;
 	showGraph(graph);
 	cout << "\n \n"; 
-	int prz = 1;  int* przesuniecie = &prz;
 	DFS(&graph, &discovered, 0, 0, y_end,0,0);
 	// showGraph(graph); //to juz sie wyswietla w funkcji
 	cout << "\nDroga z wezla " << graph_abc[y_start].nazwa << " do wezla " << graph_abc[y_end].nazwa << " prowadzi przez:\n";
