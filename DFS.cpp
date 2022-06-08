@@ -67,25 +67,14 @@ bool noOnesHere(graph_connections *graph, int y) {
 	return true; // there is no '1' in single lane (x) of (y:height) because '1' is marked as '2'-> to be collored, its marked leaf btw.
 }
 
-int DFS(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,int earlier_x,int earlier_y, int *move_y_down) {
+int DFS(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,int earlier_x,int earlier_y) {
 	system("CLS");
 	showGraph(graph[0]);
 	if (y >= y_end || y >= graph->size()-1) return 0;
 	if (noOnesHere(graph, y)) { // it means only one '1' is marked as '2' and other are zeros
-		//*move_y_down = *move_y_down + 1; 
-		return DFS(graph, discovered,x,y + 1, y_end, earlier_x, earlier_y, move_y_down);
-		return DFS(graph, discovered,x+1, y , y_end, earlier_x, earlier_y, move_y_down);
-	}
-	for (int i = x; i < graph->size(); i++) { // iterate trough whole x and find '1'
-		if (graph->at(y).at(i) == 1) {
-				discovered->push_back(y);
-				graph->at(y).at(i) = 2; earlier_x = x; earlier_y = y;
-				system("CLS"); 
-				showGraph(graph[0]); cout << "\n";
-			//	if (!(isLeaf(graph, y))); // when from leaf we switch to non-leaf
-			//		*move_y_down = 1;
-				return DFS(graph, discovered, x + 1, y + *move_y_down, y_end,earlier_x,earlier_y,move_y_down); // go right and down
-		}
+		// sometimes is need to jump over marked leafs (MARKED as '2', red collor) 
+		return DFS(graph, discovered,x,y + 1, y_end, earlier_x, earlier_y);
+		return DFS(graph, discovered,x+1, y , y_end, earlier_x, earlier_y);
 	}
 	if (isLeaf(graph, y)) { // logic when i am in a leaf 
 		int temp_x = 0;
@@ -98,10 +87,18 @@ int DFS(graph_connections *graph, vector<int>*discovered,int x,int y,int y_end,i
 		temp_x--;
 		graph->at(temp_y).at(temp_x) = 2;
 		discovered->push_back(y);
-		system("CLS"); 
+		system("CLS");
 		showGraph(graph[0]);
-		//*move_y_down = *move_y_down + 1; // // to return to the earlier (y) and not stuck in the same leaf later, I have to jump +1y more
-		return DFS(graph, discovered, earlier_x + 1, earlier_y, y_end, earlier_x, earlier_y, move_y_down);
+		return DFS(graph, discovered, earlier_x + 1, earlier_y, y_end, earlier_x, earlier_y);
+	}
+	for (int i = x; i < graph->size(); i++) { // iterate trough whole (x) and find '1'
+		if (graph->at(y).at(i) == 1) {
+				discovered->push_back(y);
+				graph->at(y).at(i) = 2; earlier_x = x; earlier_y = y;
+				system("CLS"); 
+				showGraph(graph[0]); cout << "\n";
+				return DFS(graph, discovered, x + 1, y + 1, y_end,earlier_x,earlier_y); // go right and down
+		}
 	}
 }
 
@@ -167,9 +164,9 @@ int main()
 	showGraph(graph);
 	cout << "\n \n"; 
 	int prz = 1;  int* przesuniecie = &prz;
-	DFS(&graph, &discovered, 0, 0, y_end,0,0,przesuniecie);
+	DFS(&graph, &discovered, 0, 0, y_end,0,0);
 	// showGraph(graph); //to juz sie wyswietla w funkcji
-	cout << "\nDroga z wezla " << graph_abc[y_start].nazwa << " do wezla " << graph_abc[y_end].nazwa << " prowadzi przez:\n" << endl;
+	cout << "\nDroga z wezla " << graph_abc[y_start].nazwa << " do wezla " << graph_abc[y_end].nazwa << " prowadzi przez:\n";
 	for (auto it = discovered.begin(); it != discovered.end(); it++)
 		cout << graph_abc[*it].nazwa << " ";
 	cout << endl;
